@@ -15,57 +15,57 @@
 
 // Parametri coil trasmittente (TX)
 real Anchors[Num_Anchors][3] = {
-    {-0.50, -0.25, 0},
-    {+0.50, -0.25, 0},
-    {+0.50, +0.25, 0},
-    {-0.50, +0.25, 0}};
+    {-0.50f, -0.25f, 0.0f},
+    {+0.50f, -0.25f, 0.0f},
+    {+0.50f, +0.25f, 0.0f},
+    {-0.50f, +0.25f, 0.0f}};
 // Parametri coil mobile (TX)
-const real h_tx = 200.0L / 1000.0L; // altezza del nodo mobile in [mm]
+const real h_tx = 200.0f / 1000.0f; // altezza del nodo mobile in [mm]
 
 real Tag[Num_TagPoses][3];
 // real Tag[Num_TagPoses][3] = { // posizioni vere del mobile in [mm], poi convertite in [m]
-//     {75.0L / 1000.0L, 0.00000001L / 1000.0L, h_tx},
-//     {225.0L / 1000.0L, 0.00000001L / 1000.0L, h_tx},
-//     {0.00000001L / 1000.0L, 75.0L / 1000.0L, h_tx},
-//     {75.0L / 1000.0L, 75.0L / 1000.0L, h_tx},
-//     {150.0L / 1000.0L, 75.0L / 1000.0L, h_tx},
-//     {225.0L / 1000.0L, 75.0L / 1000.0L, h_tx},
-//     {300.0L / 1000.0L, 75.0L / 1000.0L, h_tx},
-//     {75.0L / 1000.0L, 150.0L / 1000.0L, h_tx},
-//     {150.0L / 1000.0L, 150.0L / 1000.0L, h_tx},
-//     {225.0L / 1000.0L, 150.0L / 1000.0L, h_tx},
-//     {0.00000001L / 1000.0L, 225.0L / 1000.0L, h_tx},
-//     {75.0L / 1000.0L, 225.0L / 1000.0L, h_tx},
-//     {150.0L / 1000.0L, 225.0L / 1000.0L, h_tx},
-//     {225.0L / 1000.0L, 225.0L / 1000.0L, h_tx},
-//     {300.0L / 1000.0L, 225.0L / 1000.0L, h_tx},
-//     {75.0L / 1000.0L, 300.0L / 1000.0L, h_tx},
-//     {225.0L / 1000.0L, 300.0L / 1000.0L, h_tx}};
+//     {75.0f / 1000.0f, 0.00000001f / 1000.0f, h_tx},
+//     {225.0f / 1000.0f, 0.00000001f / 1000.0f, h_tx},
+//     {0.00000001f / 1000.0f, 75.0f / 1000.0f, h_tx},
+//     {75.0f / 1000.0f, 75.0f / 1000.0f, h_tx},
+//     {150.0f / 1000.0f, 75.0f / 1000.0f, h_tx},
+//     {225.0f / 1000.0f, 75.0f / 1000.0f, h_tx},
+//     {300.0f / 1000.0f, 75.0f / 1000.0f, h_tx},
+//     {75.0f / 1000.0f, 150.0f / 1000.0f, h_tx},
+//     {150.0f / 1000.0f, 150.0f / 1000.0f, h_tx},
+//     {225.0f / 1000.0f, 150.0f / 1000.0f, h_tx},
+//     {0.00000001f / 1000.0f, 225.0f / 1000.0f, h_tx},
+//     {75.0f / 1000.0f, 225.0f / 1000.0f, h_tx},
+//     {150.0f / 1000.0f, 225.0f / 1000.0f, h_tx},
+//     {225.0f / 1000.0f, 225.0f / 1000.0f, h_tx},
+//     {300.0f / 1000.0f, 225.0f / 1000.0f, h_tx},
+//     {75.0f / 1000.0f, 300.0f / 1000.0f, h_tx},
+//     {225.0f / 1000.0f, 300.0f / 1000.0f, h_tx}};
 
 // Parametri coil riceventi (RX)
 #define n_spire_rx 5                              // numero di spire in ciascun solenoide
-#define raggio_spira_rx 0.019L                    // raggio di ciascun solenoide [m]
+#define raggio_spira_rx 0.019f                    // raggio di ciascun solenoide [m]
 #define S_rx raggio_spira_rx *raggio_spira_rx *PI // area singola spira
 #define G_INA 1000                                // guadagno INA
 #define N_rx 16                                   // numero di coil RX
 
-#define corrente_solenoide_tx 0.5L                  // Intensita di corrente che scorre in solenoide tx
-#define raggio_spira_tx 0.019L                      // in [m]
+#define corrente_solenoide_tx 0.5f                  // Intensita di corrente che scorre in solenoide tx
+#define raggio_spira_tx 0.019f                      // in [m]
 #define S_tx raggio_spira_rx *raggio_spira_rx *M_PI // area singola spira
 #define n_spire_tx 5
-const real f[Num_Anchors] = {213e3L, 203e3L, 193e3L, 183e3L};
+const real f[Num_Anchors] = {213e3f, 203e3f, 193e3f, 183e3f};
 
-// #define RAY 0.019L
-// #define N_WOUNDS 5.0L
+// #define RAY 0.019f
+// #define N_WOUNDS 5.0f
 // #define COIL_SURFACE (RAY * RAY * PI)
-#define MU_0 1.25663706212e-06L
-#define PI 3.14159265359L
+#define MU_0 1.25663706212e-06f
+#define PI 3.14159265359f
 
-real versore_spira_rx[3] = {0.0000000L, 0.0000000L, 1.0L};
+real versore_spira_rx[3] = {0.0000000f, 0.0000000f, 1.0f};
 
 real dot_product(real *a, real *b, int length)
 {
-    real result = 0.0L;
+    real result = 0.0f;
     for (int i = 0; i < length; i++)
     {
         result += a[i] * b[i];
@@ -75,13 +75,13 @@ real dot_product(real *a, real *b, int length)
 
 real euclidean_distance(real *a, real *b, int length)
 {
-    real sum = 0.0L;
+    real sum = 0.0f;
     for (int i = 0; i < length; i++)
     {
         real diff = a[i] - b[i];
         sum += diff * diff;
     }
-    return sqrtl(sum);
+    return sqrtf(sum);
 }
 
 void getversor(real *a, real *b, real *u, int length)
@@ -111,15 +111,15 @@ void get_B_field_for_a_Anchor(real *anchor_pos,
 
     real dot_product_B_temp = dot_product(magnetic_dipole_moment_tx, tx_rx_versor, 3);
 
-    real constant_Bfield_constant_1 = (MU_0 / (4.0L * PI)) / powl(tx_rx_distance, 3);
+    real constant_Bfield_constant_1 = (MU_0 / (4.0f * PI)) / powf(tx_rx_distance, 3);
     real B_temp[3] = {
-        constant_Bfield_constant_1 * (3.0L * dot_product_B_temp * tx_rx_versor[0] - magnetic_dipole_moment_tx[0]),
-        constant_Bfield_constant_1 * (3.0L * dot_product_B_temp * tx_rx_versor[1] - magnetic_dipole_moment_tx[1]),
-        constant_Bfield_constant_1 * (3.0L * dot_product_B_temp * tx_rx_versor[2] - magnetic_dipole_moment_tx[2])};
+        constant_Bfield_constant_1 * (3.0f * dot_product_B_temp * tx_rx_versor[0] - magnetic_dipole_moment_tx[0]),
+        constant_Bfield_constant_1 * (3.0f * dot_product_B_temp * tx_rx_versor[1] - magnetic_dipole_moment_tx[1]),
+        constant_Bfield_constant_1 * (3.0f * dot_product_B_temp * tx_rx_versor[2] - magnetic_dipole_moment_tx[2])};
 
     // real magnetic_dipole_moment_tx_magnitude = euclidean_distance(magnetic_dipole_moment_tx, magnetic_dipole_moment_tx, 3);
     // compute the norm of the magnetic dipole moment
-    // real magnetic_dipole_moment_tx_magnitude = sqrtl(magnetic_dipole_moment_tx[0] * magnetic_dipole_moment_tx[0] +
+    // real magnetic_dipole_moment_tx_magnitude = sqrtf(magnetic_dipole_moment_tx[0] * magnetic_dipole_moment_tx[0] +
     //                                                   magnetic_dipole_moment_tx[1] * magnetic_dipole_moment_tx[1] +
     //                                                   magnetic_dipole_moment_tx[2] * magnetic_dipole_moment_tx[2]);
 
@@ -133,7 +133,7 @@ real V_from_B(real *B_field, real *rx_versor, real resonanceFreq)
 {
     real dot_product_V = dot_product(B_field, rx_versor, 3);
 
-    real V = G_INA * fabsl(2.0L * PI * resonanceFreq * PI * raggio_spira_rx * raggio_spira_rx * n_spire_rx * dot_product_V);
+    real V = G_INA * fabsf(2.0f * PI * resonanceFreq * PI * raggio_spira_rx * raggio_spira_rx * n_spire_rx * dot_product_V);
     return V;
 }
 
@@ -146,7 +146,7 @@ optimset opt = {
     .max_iter = 5000,
     .max_eval = 5000,
     .adaptive = 0,
-    .scale = 1.0e-3L};
+    .scale = 1.0e-3f};
 
 int problem_dimension = 3;
 
@@ -198,7 +198,7 @@ void cost(const model *mdl, point *pnt)
     // printf("Magnetic Cost Function\n");
     // printf("Input Point\n");
     // print_point(3, pnt, 9, 0);
-    real costo = 0.0L;
+    real costo = 0.0f;
     real V_model[Num_Anchors];
     real B_field_vector[3];
     for (int anchorIdx = 0; anchorIdx < Num_Anchors; anchorIdx++)
@@ -208,12 +208,12 @@ void cost(const model *mdl, point *pnt)
         // V_model[anchorIdx] = V_from_B(B_field_vector, versore_spira_rx, f0);
 
         // version with noise on the V_model
-        V_model[anchorIdx] = V_from_B(B_field_vector, versore_spira_rx, f[anchorIdx]) + 0.001L * ((real)rand() / (real)RAND_MAX);
+        V_model[anchorIdx] = V_from_B(B_field_vector, versore_spira_rx, f[anchorIdx]) + 0.001f * ((real)rand() / (real)RAND_MAX);
     }
 
     for (int i = 0; i < Num_Anchors; i++)
     {
-        costo += powl(mdl->V[i] - V_model[i], 2);
+        costo += powf(mdl->V[i] - V_model[i], 2);
     }
 
     pnt->y = costo;
@@ -282,7 +282,7 @@ void write_positions_to_file(float (*estimated_positions)[3], int num_positions)
 int main()
 {
 
-    real centro[2] = {0.0L, 0.0L}; // Centro della circonferenza
+    real centro[2] = {0.0f, 0.0f}; // Centro della circonferenza
     real raggio = 0.3;             // Raggio della circonferenza
     int num_punti = Num_TagPoses;  // Numero di punti da generare
     real *x, *y;
@@ -321,12 +321,12 @@ int main()
 
         ASSERT(opt.precision >= 3 && opt.precision <= 36);
         ASSERT(opt.verbose == 0 || opt.verbose == 1);
-        ASSERT(opt.tol_x >= 1.0e-36L && opt.tol_x <= 1.0e-3L);
-        ASSERT(opt.tol_y >= 1.0e-36L && opt.tol_y <= 1.0e-3L);
+        ASSERT(opt.tol_x >= 1.0e-36f && opt.tol_x <= 1.0e-3f);
+        ASSERT(opt.tol_y >= 1.0e-36f && opt.tol_y <= 1.0e-3f);
         ASSERT(opt.max_iter >= 1 && opt.max_iter <= 100000);
         ASSERT(opt.max_eval >= 1 && opt.max_eval <= 100000);
         ASSERT(opt.adaptive == 0 || opt.adaptive == 1);
-        ASSERT(opt.scale >= 1.0e-12L && opt.scale <= 1.0e3L);
+        ASSERT(opt.scale >= 1.0e-12f && opt.scale <= 1.0e3f);
 
         /// ======================== FUNZIONE DI COSTO ========================
         // questa funzione costo stima 1 volta, dovro iterare tutto per farla funzionare con putni multipli
@@ -346,11 +346,11 @@ int main()
         for (size_t i = 0; i < n; i++)
         {
             // barycentre of the tag positions
-            // real theta_0[3] = {0.15L, 0.15L, 0.2L};
+            // real theta_0[3] = {0.15f, 0.15f, 0.2f};
             // inp->x[i] = theta_0[i];
 
             // gaussian noise to the input point applyied to the true point
-            inp->x[i] = Tag[idxToTake][i] + 0.1L * ((real)rand() / (real)RAND_MAX);
+            inp->x[i] = Tag[idxToTake][i] + 0.1f * ((real)rand() / (real)RAND_MAX);
 
             // True point
             // inp->x[i] = Tag[idxToTake][i];
@@ -378,7 +378,7 @@ int main()
         estimated_positions[idxToTake][2] = out->x[2];
 
         // compute the euclidean distance between the input and output points
-        real euclidean_distance = sqrtl(pow(out->x[0] - Tag[idxToTake][0], 2) + pow(out->x[1] - Tag[idxToTake][1], 2) + pow(out->x[2] - Tag[idxToTake][2], 2));
+        real euclidean_distance = sqrtf(pow(out->x[0] - Tag[idxToTake][0], 2) + pow(out->x[1] - Tag[idxToTake][1], 2) + pow(out->x[2] - Tag[idxToTake][2], 2));
         printf("euclidean distance: %Lf\n", euclidean_distance);
 
         // print_point(n, inp, opt.precision, opt.format);

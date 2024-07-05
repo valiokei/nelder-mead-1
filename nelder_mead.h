@@ -4,7 +4,7 @@
 
 // #include "model.h"
 
-typedef long double real;
+typedef float real;
 typedef enum
 {
     false,

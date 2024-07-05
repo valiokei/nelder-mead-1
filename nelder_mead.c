@@ -16,10 +16,10 @@
 void nelder_mead(const model *mdl, const optimset *opt, simplex *smpl, point *out)
 {
     // initialize Nelder-Mead parameters
-    const real alpha = 1.0L;
-    const real gamma = opt->adaptive ? 1.0L + 2.0L / smpl->n : 2.0L;
-    const real rho = opt->adaptive ? 0.75L - 0.5L / smpl->n : 0.5L;
-    const real sigma = opt->adaptive ? 1.0L - 1.0L / smpl->n : 0.5L;
+    const real alpha = 1.0f;
+    const real gamma = opt->adaptive ? 1.0f + 2.0f / smpl->n : 2.0f;
+    const real rho = opt->adaptive ? 0.75f - 0.5f / smpl->n : 0.5f;
+    const real sigma = opt->adaptive ? 1.0f - 1.0f / smpl->n : 0.5f;
 
     // simplex contains n + 1 vertices, where n is the dimensionality of each point
     for (size_t i = 0; i < smpl->n + 1; i++)
@@ -125,12 +125,12 @@ void nelder_mead(const model *mdl, const optimset *opt, simplex *smpl, point *ou
  */
 real distance(size_t n, const point *pnt0, const point *pnt1)
 {
-    real sum = 0.0L;
+    real sum = 0.0f;
     for (size_t i = 0; i < n; i++)
     {
         sum += SQR(pnt0->x[i] - pnt1->x[i]);
     }
-    return sqrtl(sum);
+    return sqrtf(sum);
 }
 
 /*
@@ -164,15 +164,15 @@ simplex *init_simplex(size_t n, real scale, const point *inp)
         ASSERT(smpl->vertices[i].x);
         for (size_t j = 0; j < n; j++)
         { // coordinates
-            smpl->vertices[i].x[j] = 0.0L;
+            smpl->vertices[i].x[j] = 0.0f;
         }
     }
-    real b = 0.0L;
+    real b = 0.0f;
     for (size_t j = 0; j < n; j++)
     {
-        real c = sqrtl(1.0L - b);
+        real c = sqrtf(1.0f - b);
         smpl->vertices[j].x[j] = c;
-        real r = -(1.0L / n + b) / c;
+        real r = -(1.0f / n + b) / c;
         for (size_t i = j + 1; i < n + 1; i++)
         {
             smpl->vertices[i].x[j] = r;
@@ -201,7 +201,7 @@ void update_centroid(simplex *smpl)
 {
     for (size_t j = 0; j < smpl->n; j++)
     {
-        smpl->centroid->x[j] = 0.0L;
+        smpl->centroid->x[j] = 0.0f;
         for (size_t i = 0; i < smpl->n; i++)
         {
             smpl->centroid->x[j] += smpl->vertices[i].x[j];
