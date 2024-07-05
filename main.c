@@ -11,56 +11,36 @@
 // Definizione delle strutture e delle variabili globali
 
 #define Num_TagPoses 17
-#define Num_Anchors 16
-
-#define Num_TagPoses 17
-#define Num_Anchors 16
-
-#define Num_TagPoses 17
-#define Num_Anchors 16
-
-#define Num_TagPoses 17
-#define Num_Anchors 16
+#define Num_Anchors 4
 
 // Parametri coil trasmittente (TX)
 real Anchors[Num_Anchors][3] = {
-    {0.00000001L, 0.00000001L, 0.00000001L},
-    {0.00000001L, 0.3L, 0.00000001L},
-    {0.3L, 0.3L, 0.00000001L},
-    {0.3L, 0.00000001L, 0.00000001L},
-    {0.15L, 0.00000001L, 0.00000001L},
-    {0.00000001L, 0.15L, 0.00000001L},
-    {0.15L, 0.3L, 0.00000001L},
-    {0.3L, 0.15L, 0.00000001L},
-    {0.075L, 0.3272L, 0.15L},
-    {0.075L, 0.3272L, 0.3L},
-    {0.225L, 0.3272L, 0.15L},
-    {0.225L, 0.3272L, 0.3L},
-    {0.3272L, 0.225L, 0.15L},
-    {0.3272L, 0.225L, 0.3L},
-    {0.3272L, 0.075L, 0.15L},
-    {0.3272L, 0.075L, 0.3L}};
+    {-0.50, -0.25, 0},
+    {+0.50, -0.25, 0},
+    {+0.50, +0.25, 0},
+    {-0.50, +0.25, 0}};
 // Parametri coil mobile (TX)
 const real h_tx = 200.0L / 1000.0L; // altezza del nodo mobile in [mm]
 
-real Tag[Num_TagPoses][3] = { // posizioni vere del mobile in [mm], poi convertite in [m]
-    {75.0L / 1000.0L, 0.00000001L / 1000.0L, h_tx},
-    {225.0L / 1000.0L, 0.00000001L / 1000.0L, h_tx},
-    {0.00000001L / 1000.0L, 75.0L / 1000.0L, h_tx},
-    {75.0L / 1000.0L, 75.0L / 1000.0L, h_tx},
-    {150.0L / 1000.0L, 75.0L / 1000.0L, h_tx},
-    {225.0L / 1000.0L, 75.0L / 1000.0L, h_tx},
-    {300.0L / 1000.0L, 75.0L / 1000.0L, h_tx},
-    {75.0L / 1000.0L, 150.0L / 1000.0L, h_tx},
-    {150.0L / 1000.0L, 150.0L / 1000.0L, h_tx},
-    {225.0L / 1000.0L, 150.0L / 1000.0L, h_tx},
-    {0.00000001L / 1000.0L, 225.0L / 1000.0L, h_tx},
-    {75.0L / 1000.0L, 225.0L / 1000.0L, h_tx},
-    {150.0L / 1000.0L, 225.0L / 1000.0L, h_tx},
-    {225.0L / 1000.0L, 225.0L / 1000.0L, h_tx},
-    {300.0L / 1000.0L, 225.0L / 1000.0L, h_tx},
-    {75.0L / 1000.0L, 300.0L / 1000.0L, h_tx},
-    {225.0L / 1000.0L, 300.0L / 1000.0L, h_tx}};
+real Tag[Num_TagPoses][3];
+// real Tag[Num_TagPoses][3] = { // posizioni vere del mobile in [mm], poi convertite in [m]
+//     {75.0L / 1000.0L, 0.00000001L / 1000.0L, h_tx},
+//     {225.0L / 1000.0L, 0.00000001L / 1000.0L, h_tx},
+//     {0.00000001L / 1000.0L, 75.0L / 1000.0L, h_tx},
+//     {75.0L / 1000.0L, 75.0L / 1000.0L, h_tx},
+//     {150.0L / 1000.0L, 75.0L / 1000.0L, h_tx},
+//     {225.0L / 1000.0L, 75.0L / 1000.0L, h_tx},
+//     {300.0L / 1000.0L, 75.0L / 1000.0L, h_tx},
+//     {75.0L / 1000.0L, 150.0L / 1000.0L, h_tx},
+//     {150.0L / 1000.0L, 150.0L / 1000.0L, h_tx},
+//     {225.0L / 1000.0L, 150.0L / 1000.0L, h_tx},
+//     {0.00000001L / 1000.0L, 225.0L / 1000.0L, h_tx},
+//     {75.0L / 1000.0L, 225.0L / 1000.0L, h_tx},
+//     {150.0L / 1000.0L, 225.0L / 1000.0L, h_tx},
+//     {225.0L / 1000.0L, 225.0L / 1000.0L, h_tx},
+//     {300.0L / 1000.0L, 225.0L / 1000.0L, h_tx},
+//     {75.0L / 1000.0L, 300.0L / 1000.0L, h_tx},
+//     {225.0L / 1000.0L, 300.0L / 1000.0L, h_tx}};
 
 // Parametri coil riceventi (RX)
 #define n_spire_rx 5                              // numero di spire in ciascun solenoide
@@ -69,11 +49,11 @@ real Tag[Num_TagPoses][3] = { // posizioni vere del mobile in [mm], poi converti
 #define G_INA 1000                                // guadagno INA
 #define N_rx 16                                   // numero di coil RX
 
-#define corrente_solenoide_tx 1.5L                  // Intensita di corrente che scorre in solenoide tx
+#define corrente_solenoide_tx 0.5L                  // Intensita di corrente che scorre in solenoide tx
 #define raggio_spira_tx 0.019L                      // in [m]
 #define S_tx raggio_spira_rx *raggio_spira_rx *M_PI // area singola spira
 #define n_spire_tx 5
-#define f0 184e3L
+const real f[Num_Anchors] = {213e3L, 203e3L, 193e3L, 183e3L};
 
 // #define RAY 0.019L
 // #define N_WOUNDS 5.0L
@@ -158,15 +138,15 @@ real V_from_B(real *B_field, real *rx_versor, real resonanceFreq)
 }
 
 optimset opt = {
-    .precision = 8,
+    .precision = 10,
     .format = 0,
     .verbose = 0,
-    .tol_x = 1e-4,
-    .tol_y = 1e-4,
+    .tol_x = 1e-8,
+    .tol_y = 1e-8,
     .max_iter = 5000,
     .max_eval = 5000,
     .adaptive = 0,
-    .scale = 1.0e-2L};
+    .scale = 1.0e-3L};
 
 int problem_dimension = 3;
 
@@ -190,7 +170,7 @@ model *init_model(idxToTake)
         for (int anchorIdx = 0; anchorIdx < Num_Anchors; anchorIdx++)
         {
             get_B_field_for_a_Anchor(Anchors[anchorIdx], Tag[posIdx], versore_spira_rx, B_field);
-            V[posIdx][anchorIdx] = V_from_B(B_field, versore_spira_rx, f0);
+            V[posIdx][anchorIdx] = V_from_B(B_field, versore_spira_rx, f[anchorIdx]);
         }
     }
     // print all V
@@ -225,7 +205,10 @@ void cost(const model *mdl, point *pnt)
     {
 
         get_B_field_for_a_Anchor(Anchors[anchorIdx], pnt->x, versore_spira_rx, B_field_vector);
-        V_model[anchorIdx] = V_from_B(B_field_vector, versore_spira_rx, f0);
+        // V_model[anchorIdx] = V_from_B(B_field_vector, versore_spira_rx, f0);
+
+        // version with noise on the V_model
+        V_model[anchorIdx] = V_from_B(B_field_vector, versore_spira_rx, f[anchorIdx]) + 0.001L * ((real)rand() / (real)RAND_MAX);
     }
 
     for (int i = 0; i < Num_Anchors; i++)
@@ -299,6 +282,37 @@ void write_positions_to_file(float (*estimated_positions)[3], int num_positions)
 int main()
 {
 
+    real centro[2] = {0.0L, 0.0L}; // Centro della circonferenza
+    real raggio = 0.3;             // Raggio della circonferenza
+    int num_punti = Num_TagPoses;  // Numero di punti da generare
+    real *x, *y;
+    real theta;
+    int i;
+
+    // Allocazione dinamica della memoria per le coordinate x e y
+    x = (real *)malloc(num_punti * sizeof(real));
+    y = (real *)malloc(num_punti * sizeof(real));
+
+    if (x == NULL || y == NULL)
+    {
+        printf("Errore nell'allocazione della memoria\n");
+        return -1; // Termina il programma in caso di errore
+    }
+
+    // Generazione dei punti sulla circonferenza
+    for (i = 0; i < num_punti; i++)
+    {
+        theta = 2 * PI * i / num_punti;         // Angolo per il punto corrente
+        x[i] = centro[0] + raggio * cos(theta); // Coordinate x
+        y[i] = centro[1] + raggio * sin(theta); // Coordinate y
+    }
+    for (i = 0; i < num_punti; i++)
+    {
+        Tag[i][0] = x[i];
+        Tag[i][1] = y[i];
+        Tag[i][2] = h_tx;
+    }
+
     float estimated_positions[Num_TagPoses][3];
 
     // iterate over the tag positions
@@ -332,11 +346,11 @@ int main()
         for (size_t i = 0; i < n; i++)
         {
             // barycentre of the tag positions
-            real theta_0[3] = {0.15L, 0.15L, 0.2L};
-            inp->x[i] = theta_0[i];
+            // real theta_0[3] = {0.15L, 0.15L, 0.2L};
+            // inp->x[i] = theta_0[i];
 
             // gaussian noise to the input point applyied to the true point
-            // inp->x[i] = Tag[idxToTake][i] + 2.05L * ((real)rand() / (real)RAND_MAX);
+            inp->x[i] = Tag[idxToTake][i] + 0.1L * ((real)rand() / (real)RAND_MAX);
 
             // True point
             // inp->x[i] = Tag[idxToTake][i];
@@ -391,6 +405,10 @@ int main()
 
     // write the files
     write_positions_to_file(estimated_positions, Num_TagPoses);
+
+    // Liberazione della memoria allocata
+    free(x);
+    free(y);
 
     return 0;
 }
