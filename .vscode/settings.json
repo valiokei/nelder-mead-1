@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "*.py": "python",
+        "model.h": "c",
+        "math.h": "c",
+        "nelder_mead.h": "c",
+        "string.h": "c",
+        "stdio.h": "c",
+        "*.c": "c",
+        "stddef.h": "c"
+    }
+}

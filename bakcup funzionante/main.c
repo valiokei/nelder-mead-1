@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <string.h>
 #include "nelder_mead.h"
 
@@ -119,6 +118,11 @@ void get_B_field_for_a_Anchor(real *anchor_pos,
                               real *B_field)
 {
 
+    // print the input
+    // printf("anchor_pos = %Lf, %Lf, %Lf\n", anchor_pos[0], anchor_pos[1], anchor_pos[2]);
+    // printf("tag_pos = %Lf, %Lf, %Lf\n", tag_pos[0], tag_pos[1], tag_pos[2]);
+    // printf("tag_or_versor = %Lf, %Lf, %Lf\n", tag_or_versor[0], tag_or_versor[1], tag_or_versor[2]);
+
     real tx_rx_versor[3];
     getversor(anchor_pos, tag_pos, tx_rx_versor, 3);
 
@@ -158,7 +162,7 @@ real V_from_B(real *B_field, real *rx_versor, real resonanceFreq)
 }
 
 optimset opt = {
-    .precision = 8,
+    .precision = 12,
     .format = 0,
     .verbose = 0,
     .tol_x = 1e-4,
@@ -166,7 +170,7 @@ optimset opt = {
     .max_iter = 5000,
     .max_eval = 5000,
     .adaptive = 0,
-    .scale = 1.0e-2L};
+    .scale = 1.0e-12L};
 
 int problem_dimension = 3;
 
@@ -223,13 +227,19 @@ void cost(const model *mdl, point *pnt)
     real B_field_vector[3];
     for (int anchorIdx = 0; anchorIdx < Num_Anchors; anchorIdx++)
     {
+        // printf("Anchor[%d] = %Lf, %Lf, %Lf\n", anchorIdx, Anchors[anchorIdx][0], Anchors[anchorIdx][1], Anchors[anchorIdx][2]);
+        // printf("versore_spira_rx = %Lf, %Lf, %Lf\n", versore_spira_rx[0], versore_spira_rx[1], versore_spira_rx[2]);
 
         get_B_field_for_a_Anchor(Anchors[anchorIdx], pnt->x, versore_spira_rx, B_field_vector);
+        // printf("B_field_vector[%d] = %Lf, %Lf, %Lf\n", anchorIdx, B_field_vector[0], B_field_vector[1], B_field_vector[2]);
+
         V_model[anchorIdx] = V_from_B(B_field_vector, versore_spira_rx, f0);
+        // printf("V_model[%d] = %Lf\n", anchorIdx, V_model[anchorIdx]);
     }
 
     for (int i = 0; i < Num_Anchors; i++)
     {
+
         costo += powl(mdl->V[i] - V_model[i], 2);
     }
 
@@ -238,68 +248,8 @@ void cost(const model *mdl, point *pnt)
 
 int idxToTake = 0;
 
-void write_positions_to_file(float (*estimated_positions)[3], int num_positions)
-{
-
-    // Anchors File
-    FILE *fileAnchors = fopen("Anchors.csv", "w");
-    if (fileAnchors == NULL)
-    {
-        perror("Impossibile aprire il fileAnchors");
-        return;
-    }
-
-    // Scrive l'intestazione del fileAnchors CSV
-    fprintf(fileAnchors, "AnchorX,AnchorY,AnchorZ\n");
-
-    for (int anchorIdx = 0; anchorIdx < Num_Anchors; anchorIdx++)
-    {
-        fprintf(fileAnchors, "%f,%f,%f\n",
-                (float)Anchors[anchorIdx][0], (float)Anchors[anchorIdx][1], (float)Anchors[anchorIdx][2]);
-    }
-    fclose(fileAnchors);
-
-    // True Positions Tag File
-    FILE *fileTrueTagPositions = fopen("TrueTagPositions.csv", "w");
-    if (fileTrueTagPositions == NULL)
-    {
-        perror("Impossibile aprire il fileTrueTagPositions");
-        return;
-    }
-
-    // Scrive l'intestazione del fileTrueTagPositions CSV
-    fprintf(fileTrueTagPositions, "True_T_x,True_T_y,True_T_z\n");
-
-    for (int posIdx = 0; posIdx < Num_TagPoses; posIdx++)
-    {
-        fprintf(fileTrueTagPositions, "%f,%f,%f\n",
-                (float)Tag[posIdx][0], (float)Tag[posIdx][1], (float)Tag[posIdx][2]);
-    }
-    fclose(fileTrueTagPositions);
-
-    // // Estimated Positions Tag File
-    FILE *fileEstimatedTagPositions = fopen("EstimatedTagPositions.csv", "w");
-    if (fileEstimatedTagPositions == NULL)
-    {
-        perror("Impossibile aprire il fileEstimatedTagPositions");
-        return;
-    }
-
-    // Scrive l'intestazione del fileEstimatedTagPositions CSV
-    fprintf(fileEstimatedTagPositions, "Estimated_T_x,Estimated_T_y,Estimated_T_z\n");
-
-    for (int i = 0; i < num_positions; i++)
-    {
-        fprintf(fileEstimatedTagPositions, "%f,%f,%f\n",
-                estimated_positions[i][0], estimated_positions[i][1], estimated_positions[i][2]);
-    }
-    fclose(fileEstimatedTagPositions);
-}
-
 int main()
 {
-
-    float estimated_positions[Num_TagPoses][3];
 
     // iterate over the tag positions
     for (int idxToTake = 0; idxToTake < Num_TagPoses; idxToTake++)
@@ -331,15 +281,9 @@ int main()
         // set input point coordinates from command args
         for (size_t i = 0; i < n; i++)
         {
-            // barycentre of the tag positions
-            real theta_0[3] = {0.15L, 0.15L, 0.2L};
-            inp->x[i] = theta_0[i];
 
-            // gaussian noise to the input point applyied to the true point
-            // inp->x[i] = Tag[idxToTake][i] + 2.05L * ((real)rand() / (real)RAND_MAX);
-
-            // True point
-            // inp->x[i] = Tag[idxToTake][i];
+            // printf("argv[%d] = %Lf  \n", i, Tag[idxToTake][i]);
+            inp->x[i] = Tag[idxToTake][i];
         }
 
         // initialize model and simplex
@@ -354,17 +298,11 @@ int main()
         // print information
         cost(mdl, inp);
 
-        printf("True point: [%Lf,%Lf,%Lf] \n", Tag[idxToTake][0], Tag[idxToTake][1], Tag[idxToTake][2]);
-        printf("starting point: [%Lf,%Lf,%Lf] \n", inp->x[0], inp->x[1], inp->x[2]);
+        printf("input point: [%Lf,%Lf,%Lf] \n", inp->x[0], inp->x[1], inp->x[2]);
         printf("output point: [%Lf,%Lf,%Lf] \n", out->x[0], out->x[1], out->x[2]);
 
-        // save the estimated position
-        estimated_positions[idxToTake][0] = out->x[0];
-        estimated_positions[idxToTake][1] = out->x[1];
-        estimated_positions[idxToTake][2] = out->x[2];
-
         // compute the euclidean distance between the input and output points
-        real euclidean_distance = sqrtl(pow(out->x[0] - Tag[idxToTake][0], 2) + pow(out->x[1] - Tag[idxToTake][1], 2) + pow(out->x[2] - Tag[idxToTake][2], 2));
+        real euclidean_distance = sqrtl(pow(out->x[0] - inp->x[0], 2) + pow(out->x[1] - inp->x[1], 2) + pow(out->x[2] - inp->x[2], 2));
         printf("euclidean distance: %Lf\n", euclidean_distance);
 
         // print_point(n, inp, opt.precision, opt.format);
@@ -388,9 +326,6 @@ int main()
         free_point(out);
         free(mdl);
     }
-
-    // write the files
-    write_positions_to_file(estimated_positions, Num_TagPoses);
 
     return 0;
 }
