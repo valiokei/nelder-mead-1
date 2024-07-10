@@ -10,7 +10,7 @@
 // parametri per la funzione di costo
 // Definizione delle strutture e delle variabili globali
 
-#define Num_TagPoses 17
+#define Num_TagPoses 100
 #define Num_Anchors 4
 
 // Parametri coil trasmittente (TX)
@@ -20,7 +20,9 @@ real Anchors[Num_Anchors][3] = {
     {+0.50f, +0.25f, 0.0f},
     {-0.50f, +0.25f, 0.0f}};
 // Parametri coil mobile (TX)
-const real h_tx = 200.0f / 1000.0f; // altezza del nodo mobile in [mm]
+const real h_tx = 0.0f; // altezza del nodo mobile in [mm]
+
+real InputPoint[Num_TagPoses][3];
 
 real Tag[Num_TagPoses][3];
 // real Tag[Num_TagPoses][3] = { // posizioni vere del mobile in [mm], poi convertite in [m]
@@ -138,13 +140,13 @@ real V_from_B(real *B_field, real *rx_versor, real resonanceFreq)
 }
 
 optimset opt = {
-    .precision = 10,
+    .precision = 5.0f,
     .format = 0,
     .verbose = 0,
-    .tol_x = 1e-8,
-    .tol_y = 1e-8,
-    .max_iter = 5000,
-    .max_eval = 5000,
+    .tol_x = 1e-3,
+    .tol_y = 1e-3,
+    .max_iter = 500,
+    .max_eval = 500,
     .adaptive = 0,
     .scale = 1.0e-3f};
 
@@ -155,9 +157,9 @@ struct Model
     real V[Num_Anchors];
 };
 
-model *init_model(idxToTake)
+model *init_model(int idxToTake, model *mdl)
 {
-    model *mdl = malloc(Num_Anchors * sizeof(model));
+    // model *mdl = malloc(Num_Anchors * sizeof(model));
     ///============================= initialization of the stuff for the magnetic simulation ==============================
 
     // calculate the B field and the V for each coil in each positions
@@ -186,7 +188,7 @@ model *init_model(idxToTake)
     return mdl;
 }
 
-size_t dimensions()
+int dimensions()
 {
     return 3; // Tre componenti per la posizione (x, y, z)
 }
@@ -277,6 +279,21 @@ void write_positions_to_file(float (*estimated_positions)[3], int num_positions)
                 estimated_positions[i][0], estimated_positions[i][1], estimated_positions[i][2]);
     }
     fclose(fileEstimatedTagPositions);
+
+    // Input Points File
+    FILE *fileInputPoint = fopen("InputPoint.csv", "w");
+    if (fileInputPoint == NULL)
+    {
+        perror("Impossibile aprire il fileEstimatedTagPositions");
+        return;
+    }
+    fprintf(fileInputPoint, "InputPoint_x,InputPoint_y,InputPoint_z\n");
+    for (int i = 0; i < num_positions; i++)
+    {
+        fprintf(fileInputPoint, "%f,%f,%f\n",
+                InputPoint[i][0], InputPoint[i][1], InputPoint[i][2]);
+    }
+    fclose(fileInputPoint);
 }
 
 int main()
@@ -285,19 +302,15 @@ int main()
     real centro[2] = {0.0f, 0.0f}; // Centro della circonferenza
     real raggio = 0.3;             // Raggio della circonferenza
     int num_punti = Num_TagPoses;  // Numero di punti da generare
-    real *x, *y;
+    // real *x, *y;
     real theta;
     int i;
 
     // Allocazione dinamica della memoria per le coordinate x e y
-    x = (real *)malloc(num_punti * sizeof(real));
-    y = (real *)malloc(num_punti * sizeof(real));
-
-    if (x == NULL || y == NULL)
-    {
-        printf("Errore nell'allocazione della memoria\n");
-        return -1; // Termina il programma in caso di errore
-    }
+    // x = (real *)malloc(num_punti * sizeof(real));
+    // y = (real *)malloc(num_punti * sizeof(real));
+    real x[num_punti];
+    real y[num_punti];
 
     // Generazione dei punti sulla circonferenza
     for (i = 0; i < num_punti; i++)
@@ -319,14 +332,14 @@ int main()
     for (int idxToTake = 0; idxToTake < Num_TagPoses; idxToTake++)
     {
 
-        ASSERT(opt.precision >= 3 && opt.precision <= 36);
-        ASSERT(opt.verbose == 0 || opt.verbose == 1);
-        ASSERT(opt.tol_x >= 1.0e-36f && opt.tol_x <= 1.0e-3f);
-        ASSERT(opt.tol_y >= 1.0e-36f && opt.tol_y <= 1.0e-3f);
-        ASSERT(opt.max_iter >= 1 && opt.max_iter <= 100000);
-        ASSERT(opt.max_eval >= 1 && opt.max_eval <= 100000);
-        ASSERT(opt.adaptive == 0 || opt.adaptive == 1);
-        ASSERT(opt.scale >= 1.0e-12f && opt.scale <= 1.0e3f);
+        // ASSERT(opt.precision >= 3 && opt.precision <= 36);
+        // ASSERT(opt.verbose == 0 || opt.verbose == 1);
+        // ASSERT(opt.tol_x >= 1.0e-36f && opt.tol_x <= 1.0e-3f);
+        // ASSERT(opt.tol_y >= 1.0e-36f && opt.tol_y <= 1.0e-3f);
+        // ASSERT(opt.max_iter >= 1 && opt.max_iter <= 100000);
+        // ASSERT(opt.max_eval >= 1 && opt.max_eval <= 100000);
+        // ASSERT(opt.adaptive == 0 || opt.adaptive == 1);
+        // ASSERT(opt.scale >= 1.0e-12f && opt.scale <= 1.0e3f);
 
         /// ======================== FUNZIONE DI COSTO ========================
         // questa funzione costo stima 1 volta, dovro iterare tutto per farla funzionare con putni multipli
@@ -334,52 +347,57 @@ int main()
         // read optimizer settings from command line and check values
 
         // infer number of dimension from command args
-        const size_t n = problem_dimension;
+        const int n = problem_dimension;
         // assert number of dimensions is correct
         // ASSERT(n == dimensions());
 
         // allocate input / output points
-        point *inp = init_point(n);
-        point *out = init_point(n);
+        // point *inp = init_point(n);
+        // point *out = init_point(n);
+        point inp;
+        point out;
 
         // set input point coordinates from command args
-        for (size_t i = 0; i < n; i++)
+        for (int i = 0; i < n; i++)
         {
             // barycentre of the tag positions
             // real theta_0[3] = {0.15f, 0.15f, 0.2f};
-            // inp->x[i] = theta_0[i];
+            // inp.x[i] = 0.0;
 
             // gaussian noise to the input point applyied to the true point
-            inp->x[i] = Tag[idxToTake][i] + 0.1f * ((real)rand() / (real)RAND_MAX);
+            InputPoint[idxToTake][i] = Tag[idxToTake][i] + 0.1f * ((real)rand() / (real)RAND_MAX);
+            inp.x[i] = InputPoint[idxToTake][i];
 
             // True point
             // inp->x[i] = Tag[idxToTake][i];
         }
 
         // initialize model and simplex
-        model *mdl = init_model(idxToTake);
+        model mdl;
+        init_model(idxToTake, &mdl);
 
-        simplex *smpl = init_simplex(n, opt.scale, inp);
+        simplex smpl;
+        init_simplex(n, opt.scale, &inp, &smpl);
+
+        // print information
+        cost(&mdl, &inp);
 
         // optimize model mdl, using settings opt, starting
         // from simplex smpl, and save result to point out
-        nelder_mead(mdl, &opt, smpl, out);
+        nelder_mead(&mdl, &opt, &smpl, &out);
 
-        // print information
-        cost(mdl, inp);
-
-        printf("True point: [%Lf,%Lf,%Lf] \n", Tag[idxToTake][0], Tag[idxToTake][1], Tag[idxToTake][2]);
-        printf("starting point: [%Lf,%Lf,%Lf] \n", inp->x[0], inp->x[1], inp->x[2]);
-        printf("output point: [%Lf,%Lf,%Lf] \n", out->x[0], out->x[1], out->x[2]);
+        // printf("True point: [%Lf,%Lf,%Lf] \n", Tag[idxToTake][0], Tag[idxToTake][1], Tag[idxToTake][2]);
+        // printf("starting point: [%Lf,%Lf,%Lf] \n", inp->x[0], inp->x[1], inp->x[2]);
+        // printf("output point: [%Lf,%Lf,%Lf] \n", out->x[0], out->x[1], out->x[2]);
 
         // save the estimated position
-        estimated_positions[idxToTake][0] = out->x[0];
-        estimated_positions[idxToTake][1] = out->x[1];
-        estimated_positions[idxToTake][2] = out->x[2];
+        estimated_positions[idxToTake][0] = out.x[0];
+        estimated_positions[idxToTake][1] = out.x[1];
+        estimated_positions[idxToTake][2] = out.x[2];
 
         // compute the euclidean distance between the input and output points
-        real euclidean_distance = sqrtf(pow(out->x[0] - Tag[idxToTake][0], 2) + pow(out->x[1] - Tag[idxToTake][1], 2) + pow(out->x[2] - Tag[idxToTake][2], 2));
-        printf("euclidean distance: %Lf\n", euclidean_distance);
+        real euclidean_distance = sqrtf(pow(out.x[0] - Tag[idxToTake][0], 2) + pow(out.x[1] - Tag[idxToTake][1], 2) + pow(out.x[2] - Tag[idxToTake][2], 2));
+        // printf("euclidean distance: %Lf\n", euclidean_distance);
 
         // print_point(n, inp, opt.precision, opt.format);
 
@@ -397,18 +415,18 @@ int main()
         // printf("%s  Evaluations%s %d\n", WHT, NRM, smpl->num_eval);
 
         // free memory and exit
-        free_simplex(smpl);
-        free_point(inp);
-        free_point(out);
-        free(mdl);
+        // free_simplex(&smpl);
+        // free_point(&inp);
+        // free_point(&out);
+        // free(&mdl);
     }
 
     // write the files
     write_positions_to_file(estimated_positions, Num_TagPoses);
 
     // Liberazione della memoria allocata
-    free(x);
-    free(y);
+    // free(x);
+    // free(y);
 
     return 0;
 }

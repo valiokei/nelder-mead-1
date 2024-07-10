@@ -2,6 +2,8 @@
 
 #include <stddef.h>
 
+#define DIMENSIONS 3
+
 // #include "model.h"
 
 typedef float real;
@@ -28,19 +30,19 @@ typedef struct Model model;
  */
 typedef struct Point
 {
-    real *x;
+    real x[DIMENSIONS];
     real y;
 } point;
 
 /*
  * Initialize function
  */
-model *init_model(int idx);
+model *init_model(int idx, model *mdl);
 
 /*
  * Return expected number of dimensions
  */
-size_t dimensions(void);
+int dimensions(void);
 
 /*
  * Cost function implementation
@@ -74,31 +76,6 @@ void cost(const model *, point *);
 #define WHTBG "\x1B[0;107m"
 
 /*
- * Report program arguments in colour
- */
-#define PRINT_ARGS(argc, argv, color)                                                \
-    do                                                                               \
-    {                                                                                \
-        fprintf(stderr, "%sargc %s%d%s, argv [ %s", color, NRM, (argc), color, NRM); \
-        for (int i = 0; i < (argc); i++)                                             \
-            fprintf(stderr, "%s ", (argv)[i]);                                       \
-        fprintf(stderr, "%s]%s\n", color, NRM);                                      \
-    } while (0)
-
-/*
- * Unavoidable "assert", in colour
- */
-#define ASSERT(x)                                                                                                              \
-    do                                                                                                                         \
-    {                                                                                                                          \
-        if (!(x))                                                                                                              \
-        {                                                                                                                      \
-            fprintf(stderr, "%sFAIL %s%s %s%s%s %s%s:%s%i\n", RED, WHT, #x, YLW, __func__, NRM, __FILE__, YLW, NRM, __LINE__); \
-            exit(1);                                                                                                           \
-        }                                                                                                                      \
-    } while (0)
-
-/*
  * Optimizer settings
  */
 typedef struct Optimset
@@ -119,10 +96,13 @@ typedef struct Optimset
  */
 typedef struct Simplex
 {
-    size_t n;
+    int n;
     unsigned int num_iter, num_eval;
-    point *vertices;
-    point *reflected, *expanded, *contracted, *centroid;
+    point vertices[DIMENSIONS + 1];
+    point reflected;
+    point expanded;
+    point contracted;
+    point centroid;
 } simplex;
 
 /*
@@ -133,13 +113,13 @@ void nelder_mead(const model *, const optimset *, simplex *, point *);
 /*
  * Utility functions
  */
-real distance(size_t, const point *, const point *);
+real distance(int, const point *, const point *);
 
 int compare(const void *, const void *);
 
 void sort(simplex *);
 
-simplex *init_simplex(size_t, real, const point *);
+void init_simplex(int, real, const point *, simplex *smpl);
 
 void update_centroid(simplex *);
 
@@ -152,11 +132,11 @@ real tolerance_y(const simplex *);
 
 int terminated(const simplex *, const optimset *);
 
-point *init_point(size_t);
+// point *init_point(int);
 
-void copy_point(size_t, const point *, point *);
+void copy_point(int, const point *, point *);
 
-void print_point(size_t, const point *, int, int);
+void print_point(int, const point *, int, int);
 
 void print_value(real, int, int);
 

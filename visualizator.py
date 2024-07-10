@@ -14,6 +14,10 @@ df_EstimatedTagPositions = pd.read_csv(
     'EstimatedTagPositions.csv', header=0)
 df_TrueTagPositions = pd.read_csv('TrueTagPositions.csv', header=0)
 
+# add also the inputPoint File with the same format
+df_inputPoint = pd.read_csv('InputPoint.csv', header=0)
+
+
 # compute the euclidean distance between the estimated and true tag positions
 df_EstimatedTagPositions['Error'] = ((df_EstimatedTagPositions['Estimated_T_x'] - df_TrueTagPositions['True_T_x'])**2 + (
     df_EstimatedTagPositions['Estimated_T_y'] - df_TrueTagPositions['True_T_y'])**2)**0.5
@@ -33,6 +37,10 @@ fig.add_trace(go.Scatter(
     x=df_EstimatedTagPositions['Estimated_T_x'], y=df_EstimatedTagPositions['Estimated_T_y'], mode='markers', name='Estimated Tag Positions', marker=dict(color='blue')))
 fig.add_trace(go.Scatter(
     x=df_TrueTagPositions["True_T_x"], y=df_TrueTagPositions["True_T_y"], mode='markers', name='True Tag Positions', marker=dict(color='red', symbol='circle-open')))
+fig.add_trace(go.Scatter(
+    x=df_inputPoint["InputPoint_x"], y=df_inputPoint["InputPoint_y"], mode='markers', name='Input Point', marker=dict(color='black', symbol='x')))
+
+
 fig.update_layout(title='Estimated Tag Positions',
                   xaxis_title='X',
                   yaxis_title='Y',

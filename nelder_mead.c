@@ -22,7 +22,7 @@ void nelder_mead(const model *mdl, const optimset *opt, simplex *smpl, point *ou
     const real sigma = opt->adaptive ? 1.0f - 1.0f / smpl->n : 0.5f;
 
     // simplex contains n + 1 vertices, where n is the dimensionality of each point
-    for (size_t i = 0; i < smpl->n + 1; i++)
+    for (int i = 0; i < smpl->n + 1; i++)
     {
         cost(mdl, smpl->vertices + i);
         smpl->num_eval++;
@@ -48,58 +48,58 @@ void nelder_mead(const model *mdl, const optimset *opt, simplex *smpl, point *ou
         int shrink = 0;
 
         update_centroid(smpl);
-        update_simplex(alpha, smpl->centroid, smpl->centroid, worst,
-                       mdl, smpl, smpl->reflected);
+        update_simplex(alpha, &smpl->centroid, &smpl->centroid, worst,
+                       mdl, smpl, &smpl->reflected);
 
         print_verbose(opt->verbose, " %4d  %4d  ", smpl->num_iter, smpl->num_eval);
 
-        if (smpl->reflected->y < best->y)
+        if (smpl->reflected.y < best->y)
         {
-            update_simplex(gamma, smpl->centroid, smpl->reflected, smpl->centroid,
-                           mdl, smpl, smpl->expanded);
-            if (smpl->expanded->y < smpl->reflected->y)
+            update_simplex(gamma, &smpl->centroid, &smpl->reflected, &smpl->centroid,
+                           mdl, smpl, &smpl->expanded);
+            if (smpl->expanded.y < smpl->reflected.y)
             {
                 print_verbose(opt->verbose, "%sexpand      %s ", CYN, NRM);
-                copy_point(smpl->n, smpl->expanded, worst);
+                copy_point(smpl->n, &smpl->expanded, worst);
             }
             else
             {
                 print_verbose(opt->verbose, "%sreflect     %s ", GRN, NRM);
-                copy_point(smpl->n, smpl->reflected, worst);
+                copy_point(smpl->n, &smpl->reflected, worst);
             }
         }
-        else if (smpl->reflected->y < (worst - 1)->y)
+        else if (smpl->reflected.y < (worst - 1)->y)
         {
             print_verbose(opt->verbose, "%sreflect     %s ", GRN, NRM);
-            copy_point(smpl->n, smpl->reflected, worst);
+            copy_point(smpl->n, &smpl->reflected, worst);
         }
-        else if (smpl->reflected->y < worst->y)
+        else if (smpl->reflected.y < worst->y)
         {
-            update_simplex(rho, smpl->centroid, smpl->reflected, smpl->centroid,
-                           mdl, smpl, smpl->contracted);
-            shrink = smpl->contracted->y >= smpl->reflected->y;
+            update_simplex(rho, &smpl->centroid, &smpl->reflected, &smpl->centroid,
+                           mdl, smpl, &smpl->contracted);
+            shrink = smpl->contracted.y >= smpl->reflected.y;
             if (!shrink)
             {
                 print_verbose(opt->verbose, "%scontract_out%s ", MGT, NRM);
-                copy_point(smpl->n, smpl->contracted, worst);
+                copy_point(smpl->n, &smpl->contracted, worst);
             }
         }
         else
         {
-            update_simplex(rho, smpl->centroid, worst, smpl->centroid,
-                           mdl, smpl, smpl->contracted);
-            shrink = smpl->contracted->y > worst->y;
+            update_simplex(rho, &smpl->centroid, worst, &smpl->centroid,
+                           mdl, smpl, &smpl->contracted);
+            shrink = smpl->contracted.y > worst->y;
             if (!shrink)
             {
                 print_verbose(opt->verbose, "%scontract_in %s ", YLW, NRM);
-                copy_point(smpl->n, smpl->contracted, worst);
+                copy_point(smpl->n, &smpl->contracted, worst);
             }
         }
 
         if (shrink)
         {
             print_verbose(opt->verbose, "%sshrink      %s ", RED, NRM);
-            for (size_t i = 1; i < smpl->n + 1; i++)
+            for (int i = 1; i < smpl->n + 1; i++)
             {
                 update_simplex(sigma, best, smpl->vertices + i, best,
                                mdl, smpl, smpl->vertices + i);
@@ -123,10 +123,10 @@ void nelder_mead(const model *mdl, const optimset *opt, simplex *smpl, point *ou
 /*
  * Euclidean distance between two points
  */
-real distance(size_t n, const point *pnt0, const point *pnt1)
+real distance(int n, const point *pnt0, const point *pnt1)
 {
     real sum = 0.0f;
-    for (size_t i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
         sum += SQR(pnt0->x[i] - pnt1->x[i]);
     }
@@ -145,53 +145,51 @@ int compare(const void *arg1, const void *arg2)
 
 void sort(simplex *smpl)
 {
-    qsort((void *)(smpl->vertices), (size_t)smpl->n + 1, sizeof(point), compare);
+    qsort((void *)(smpl->vertices), (int)smpl->n + 1, sizeof(point), compare);
 }
 
 /*
  * Initial point at centroid, all vertices equally spaced, trial points allocated
  */
-simplex *init_simplex(size_t n, real scale, const point *inp)
+void init_simplex(int n, real scale, const point *inp, simplex *smpl)
 {
-    simplex *smpl = malloc(sizeof(simplex));
-    ASSERT(smpl);
-    smpl->vertices = malloc((n + 1) * sizeof(point));
-    ASSERT(smpl->vertices);
+    // simplex *smpl = malloc(sizeof(simplex));
+    // smpl->vertices = malloc((n + 1) * sizeof(point));
     smpl->n = n;
-    for (size_t i = 0; i < n + 1; i++)
+    for (int i = 0; i < n + 1; i++)
     { // simplex vertices
-        smpl->vertices[i].x = malloc(n * sizeof(real));
-        ASSERT(smpl->vertices[i].x);
-        for (size_t j = 0; j < n; j++)
+        // smpl->vertices[i].x = malloc(n * sizeof(real));
+        // ASSERT(smpl->vertices[i].x);
+        for (int j = 0; j < n; j++)
         { // coordinates
             smpl->vertices[i].x[j] = 0.0f;
         }
     }
     real b = 0.0f;
-    for (size_t j = 0; j < n; j++)
+    for (int j = 0; j < n; j++)
     {
         real c = sqrtf(1.0f - b);
         smpl->vertices[j].x[j] = c;
         real r = -(1.0f / n + b) / c;
-        for (size_t i = j + 1; i < n + 1; i++)
+        for (int i = j + 1; i < n + 1; i++)
         {
             smpl->vertices[i].x[j] = r;
         }
         b += SQR(r);
     }
-    for (size_t i = 0; i < n + 1; i++)
+    for (int i = 0; i < n + 1; i++)
     {
-        for (size_t j = 0; j < n; j++)
+        for (int j = 0; j < n; j++)
         {
             smpl->vertices[i].x[j] = scale * smpl->vertices[i].x[j] + inp->x[j];
         }
     }
-    smpl->reflected = init_point(n);
-    smpl->expanded = init_point(n);
-    smpl->contracted = init_point(n);
-    smpl->centroid = init_point(n);
+    // smpl->reflected = init_point(n);
+    // smpl->expanded = init_point(n);
+    // smpl->contracted = init_point(n);
+    // smpl->centroid = init_point(n);
     smpl->num_iter = smpl->num_eval = 0;
-    return smpl;
+    // return smpl;
 }
 
 /*
@@ -199,14 +197,14 @@ simplex *init_simplex(size_t n, real scale, const point *inp)
  */
 void update_centroid(simplex *smpl)
 {
-    for (size_t j = 0; j < smpl->n; j++)
+    for (int j = 0; j < smpl->n; j++)
     {
-        smpl->centroid->x[j] = 0.0f;
-        for (size_t i = 0; i < smpl->n; i++)
+        smpl->centroid.x[j] = 0.0f;
+        for (int i = 0; i < smpl->n; i++)
         {
-            smpl->centroid->x[j] += smpl->vertices[i].x[j];
+            smpl->centroid.x[j] += smpl->vertices[i].x[j];
         }
-        smpl->centroid->x[j] /= smpl->n;
+        smpl->centroid.x[j] /= smpl->n;
     }
 }
 
@@ -216,7 +214,8 @@ void update_centroid(simplex *smpl)
 void update_simplex(real scale, const point *inp0, const point *inp1, const point *inp2,
                     const model *mdl, simplex *smpl, point *out)
 {
-    for (size_t j = 0; j < smpl->n; j++)
+
+    for (int j = 0; j < smpl->n; j++)
     {
         out->x[j] = inp0->x[j] + scale * (inp1->x[j] - inp2->x[j]);
     }
@@ -255,25 +254,26 @@ int terminated(const simplex *smpl, const optimset *opt)
 /*
  * Point utilities
  */
-point *init_point(size_t n)
-{
-    point *pnt = malloc(sizeof(point));
-    ASSERT(pnt);
-    pnt->x = malloc(n * sizeof(real));
-    ASSERT(pnt->x);
-    return pnt;
-}
+// point *init_point(int n)
+// {
+//     // point *pnt = malloc(sizeof(point));
+//     // ASSERT(pnt);
+//     // pnt->x = malloc(n * sizeof(real));
+//     // ASSERT(pnt->x);
+//     point pnt;
+//     return *pnt;
+// }
 
-void copy_point(size_t n, const point *inp, point *out)
+void copy_point(int n, const point *inp, point *out)
 {
     memcpy(out->x, inp->x, n * sizeof(real));
     out->y = inp->y;
 }
 
-void print_point(size_t n, const point *pnt, int precision, int format)
+void print_point(int n, const point *pnt, int precision, int format)
 {
     printf("[ ");
-    for (size_t i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
         print_value(pnt->x[i], precision, format);
     }
@@ -298,25 +298,25 @@ void print_verbose(int verbose, const char *format, ...)
     }
 }
 
-/*
- * Memory utilities
- */
-void free_simplex(simplex *smpl)
-{
-    for (size_t i = 0; i < smpl->n; i++)
-    {
-        free(smpl->vertices[i].x);
-    }
-    free(smpl->vertices);
-    free_point(smpl->reflected);
-    free_point(smpl->expanded);
-    free_point(smpl->contracted);
-    free_point(smpl->centroid);
-    free(smpl);
-}
+// /*
+//  * Memory utilities
+//  */
+// void free_simplex(simplex *smpl)
+// {
+//     for (int i = 0; i < smpl->n; i++)
+//     {
+//         free(smpl->vertices[i].x);
+//     }
+//     free(smpl->vertices);
+//     free_point(smpl->reflected);
+//     free_point(smpl->expanded);
+//     free_point(smpl->contracted);
+//     free_point(smpl->centroid);
+//     free(smpl);
+// }
 
-void free_point(point *pnt)
-{
-    free(pnt->x);
-    free(pnt);
-}
+// void free_point(point *pnt)
+// {
+//     free(pnt->x);
+//     free(pnt);
+// }

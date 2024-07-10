@@ -7,6 +7,7 @@
         "string.h": "c",
         "stdio.h": "c",
         "*.c": "c",
-        "stddef.h": "c"
+        "stddef.h": "c",
+        "stdlib.h": "c"
     }
 }
