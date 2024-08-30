@@ -4,28 +4,29 @@ import os
 import pandas as pd
 import plotly.graph_objects as go
 
-# il file si trova un livello fuori da questo
+try:
+    os.system(
+        "rm /home/valiokei/Documenti/GitHub/nelder-mead/Crazyflie/Lib_Scipy/*_Scipy.csv")
+    os.system(
+        "rm /home/valiokei/Documenti/GitHub/nelder-mead/Crazyflie/Lib_Scipy/main_Scipy")
+except:
+    pass
 
-# elimina tutti i file .csv
-os.system("rm /home/valiokei/Documenti/GitHub/nelder-mead/*.csv")
 
-# elimina il file eseguibile se esiste chiamato main
-os.system("rm /home/valiokei/Documenti/GitHub/nelder-mead/main")
+os.system("/usr/bin/gcc -fdiagnostics-color=always -g /home/valiokei/Documenti/GitHub/nelder-mead/Crazyflie/Lib_Scipy/*_Scipy.c /home/valiokei/Documenti/GitHub/nelder-mead/Crazyflie/Lib_Scipy/*_Scipy.h -o /home/valiokei/Documenti/GitHub/nelder-mead/Crazyflie/Lib_Scipy/main_Scipy -lm -I /home/valiokei/Documenti/GitHub/nelder-mead/Lib_Scipy/")
 
-
-os.system("/usr/bin/gcc -fdiagnostics-color=always -g /home/valiokei/Documenti/GitHub/nelder-mead/*.c /home/valiokei/Documenti/GitHub/nelder-mead/*.h -o /home/valiokei/Documenti/GitHub/nelder-mead/main -lm -I /home/valiokei/Documenti/GitHub/nelder-mead")
-
-os.system("./main")
+os.system(
+    "cd /home/valiokei/Documenti/GitHub/nelder-mead/Crazyflie/Lib_Scipy/ && ./main_Scipy")
 
 
 # Load CSV files into Pandas DataFrame
-df_Anchors = pd.read_csv('Anchors.csv', header=0)
+df_Anchors = pd.read_csv('Anchors_Scipy.csv', header=0)
 df_EstimatedTagPositions = pd.read_csv(
-    'EstimatedTagPositions.csv', header=0)
-df_TrueTagPositions = pd.read_csv('TrueTagPositions.csv', header=0)
+    'EstimatedTagPositions_Scipy.csv', header=0)
+df_TrueTagPositions = pd.read_csv('TrueTagPositions_Scipy.csv', header=0)
 
 # add also the inputPoint File with the same format
-df_inputPoint = pd.read_csv('InputPoint.csv', header=0)
+df_inputPoint = pd.read_csv('InputPoint_Scipy.csv', header=0)
 
 
 # compute the euclidean distance between the estimated and true tag positions

@@ -8,6 +8,11 @@
         "stdio.h": "c",
         "*.c": "c",
         "stddef.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "cstdint": "cpp",
+        "*.backup": "c",
+        "*.k": "c",
+        "config__orig.h": "c",
+        "nelder_mead_orig.h": "c"
     }
 }

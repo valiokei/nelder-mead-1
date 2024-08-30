@@ -7,10 +7,10 @@
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
-                "${fileDirname}/*.c",
-                "${fileDirname}/*.h",
+                "${workspaceFolder}/*.c",
+                "${workspaceFolder}/*.h",
                 "-o",
-                "${fileDirname}/${fileBasenameNoExtension}",
+                "${workspaceFolder}/${fileBasenameNoExtension}",
                 "-lm",
                 // "-std=c99",
                 // "-O3",
@@ -18,10 +18,10 @@
                 // "-flto",
                 "-I",
                 // "${workspaceFolder}/headers/",
-                "${fileDirname}"
+                "${workspaceFolder}"
             ],
             "options": {
-                "cwd": "${fileDirname}"
+                "cwd": "${workspaceFolder}"
             },
             "problemMatcher": [
                 "$gcc"

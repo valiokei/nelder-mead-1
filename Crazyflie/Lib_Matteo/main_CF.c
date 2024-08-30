@@ -5,12 +5,14 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-#include "nelder_mead.h"
+#include "nelder_mead_CF.h"
+#include "Config.h"
+#include "time.h"
 
 // parametri per la funzione di costo
 // Definizione delle strutture e delle variabili globali
 
-#define Num_TagPoses 100
+#define Num_TagPoses 10
 #define Num_Anchors 4
 
 // Parametri coil trasmittente (TX)
@@ -21,50 +23,19 @@ real Anchors[Num_Anchors][3] = {
     {-0.50f, +0.25f, 0.0f}};
 // Parametri coil mobile (TX)
 const real h_tx = 0.0f; // altezza del nodo mobile in [mm]
+// const real frequencies[NUM_ANCHORS] = {213e3f, 203e3f, 193e3f, 183e3f};
+const real frequencies[NUM_ANCHORS] = {213e3f, 203e3f, 193e3f, 183e3f};
 
 real InputPoint[Num_TagPoses][3];
 
 real Tag[Num_TagPoses][3];
-// real Tag[Num_TagPoses][3] = { // posizioni vere del mobile in [mm], poi convertite in [m]
-//     {75.0f / 1000.0f, 0.00000001f / 1000.0f, h_tx},
-//     {225.0f / 1000.0f, 0.00000001f / 1000.0f, h_tx},
-//     {0.00000001f / 1000.0f, 75.0f / 1000.0f, h_tx},
-//     {75.0f / 1000.0f, 75.0f / 1000.0f, h_tx},
-//     {150.0f / 1000.0f, 75.0f / 1000.0f, h_tx},
-//     {225.0f / 1000.0f, 75.0f / 1000.0f, h_tx},
-//     {300.0f / 1000.0f, 75.0f / 1000.0f, h_tx},
-//     {75.0f / 1000.0f, 150.0f / 1000.0f, h_tx},
-//     {150.0f / 1000.0f, 150.0f / 1000.0f, h_tx},
-//     {225.0f / 1000.0f, 150.0f / 1000.0f, h_tx},
-//     {0.00000001f / 1000.0f, 225.0f / 1000.0f, h_tx},
-//     {75.0f / 1000.0f, 225.0f / 1000.0f, h_tx},
-//     {150.0f / 1000.0f, 225.0f / 1000.0f, h_tx},
-//     {225.0f / 1000.0f, 225.0f / 1000.0f, h_tx},
-//     {300.0f / 1000.0f, 225.0f / 1000.0f, h_tx},
-//     {75.0f / 1000.0f, 300.0f / 1000.0f, h_tx},
-//     {225.0f / 1000.0f, 300.0f / 1000.0f, h_tx}};
 
-// Parametri coil riceventi (RX)
-#define n_spire_rx 5                              // numero di spire in ciascun solenoide
-#define raggio_spira_rx 0.019f                    // raggio di ciascun solenoide [m]
-#define S_rx raggio_spira_rx *raggio_spira_rx *PI // area singola spira
-#define G_INA 1000                                // guadagno INA
-#define N_rx 16                                   // numero di coil RX
+volatile real MeasuredVoltages_calibrated[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+static real estimated_position[3] = {0.0f, 0.0f, 0.0f};
 
-#define corrente_solenoide_tx 0.5f                  // Intensita di corrente che scorre in solenoide tx
-#define raggio_spira_tx 0.019f                      // in [m]
-#define S_tx raggio_spira_rx *raggio_spira_rx *M_PI // area singola spira
-#define n_spire_tx 5
-const real f[Num_Anchors] = {213e3f, 203e3f, 193e3f, 183e3f};
+real versore_spira_rx[3] = {0.0000f, 0.0f, 1.0f};
 
-// #define RAY 0.019f
-// #define N_WOUNDS 5.0f
-// #define COIL_SURFACE (RAY * RAY * PI)
-#define MU_0 1.25663706212e-06f
-#define PI 3.14159265359f
-
-real versore_spira_rx[3] = {0.0000000f, 0.0000000f, 1.0f};
-
+// --------------------------- Math Utils Functions ---------------------------
 real dot_product(real *a, real *b, int length)
 {
     real result = 0.0f;
@@ -83,7 +54,7 @@ real euclidean_distance(real *a, real *b, int length)
         real diff = a[i] - b[i];
         sum += diff * diff;
     }
-    return sqrtf(sum);
+    return sqrtl(sum);
 }
 
 void getversor(real *a, real *b, real *u, int length)
@@ -95,25 +66,50 @@ void getversor(real *a, real *b, real *u, int length)
     }
 }
 
+real computeSTD(real *data, int arrayDimension)
+{
+    real sum = 0.0;
+    real mean = 0.0;
+    real standardDeviation = 0.0;
+
+    int i;
+
+    for (i = 0; i < arrayDimension; i++)
+    {
+        sum += data[i];
+    }
+
+    mean = sum / arrayDimension;
+
+    for (i = 0; i < arrayDimension; i++)
+        standardDeviation += powl(data[i] - mean, 2);
+
+    return sqrtf(standardDeviation / arrayDimension);
+}
+
+// ---------------- Measurement Model Functions ------------------------------
 void get_B_field_for_a_Anchor(real *anchor_pos,
                               real *tag_pos,
                               real *tag_or_versor,
                               real *B_field)
 {
-
     real tx_rx_versor[3];
     getversor(anchor_pos, tag_pos, tx_rx_versor, 3);
+    // DEBUG_PRINT("tx_rx_versor = %f\n", tx_rx_versor);
 
     real magnetic_dipole_moment_tx[3] = {
-        n_spire_rx * S_rx * corrente_solenoide_tx * tag_or_versor[0],
-        n_spire_rx * S_rx * corrente_solenoide_tx * tag_or_versor[1],
-        n_spire_rx * S_rx * corrente_solenoide_tx * tag_or_versor[2]};
+        N_WOUNDS * COIL_SURFACE * CURRENT * tag_or_versor[0],
+        N_WOUNDS * COIL_SURFACE * CURRENT * tag_or_versor[1],
+        N_WOUNDS * COIL_SURFACE * CURRENT * tag_or_versor[2]};
+    // DEBUG_PRINT("magnetic_dipole_moment_tx = %f\n", magnetic_dipole_moment_tx);
 
     real tx_rx_distance = euclidean_distance(anchor_pos, tag_pos, 3);
 
+    // DEBUG_PRINT("tx_rx_distance = %f\n", tx_rx_distance);
+
     real dot_product_B_temp = dot_product(magnetic_dipole_moment_tx, tx_rx_versor, 3);
 
-    real constant_Bfield_constant_1 = (MU_0 / (4.0f * PI)) / powf(tx_rx_distance, 3);
+    real constant_Bfield_constant_1 = (MU_0 / (4.0f * PI)) / powl(tx_rx_distance, 3);
     real B_temp[3] = {
         constant_Bfield_constant_1 * (3.0f * dot_product_B_temp * tx_rx_versor[0] - magnetic_dipole_moment_tx[0]),
         constant_Bfield_constant_1 * (3.0f * dot_product_B_temp * tx_rx_versor[1] - magnetic_dipole_moment_tx[1]),
@@ -131,61 +127,77 @@ void get_B_field_for_a_Anchor(real *anchor_pos,
     B_field[2] = B_temp[2]; // * magnetic_dipole_moment_tx_magnitude;
 }
 
-real V_from_B(real *B_field, real *rx_versor, real resonanceFreq)
+real V_from_B(real *B_field, real *rx_versor, real resonanceFreq, real Gain)
 {
     real dot_product_V = dot_product(B_field, rx_versor, 3);
 
-    real V = G_INA * fabsf(2.0f * PI * resonanceFreq * PI * raggio_spira_rx * raggio_spira_rx * n_spire_rx * dot_product_V);
+    real V = Gain * fabsf(2.0f * PI * resonanceFreq * PI * RAY * RAY * N_WOUNDS * dot_product_V);
     return V;
 }
+static point inp;
+static point out;
+static model mdl;
+static simplex smpl;
 
+static real magnetiSTDNoise = 0;
+const int problem_dimension = 3;
 optimset opt = {
+
+    // ASSERT(opt.precision >= 3 && opt.precision <= 36);
+    // ASSERT(opt.verbose == 0 || opt.verbose == 1);
+    // ASSERT(opt.tol_x >= 1.0e-36f && opt.tol_x <= 1.0e-3f);
+    // ASSERT(opt.tol_y >= 1.0e-36f && opt.tol_y <= 1.0e-3f);
+    // ASSERT(opt.max_iter >= 1 && opt.max_iter <= 100000);
+    // ASSERT(opt.max_eval >= 1 && opt.max_eval <= 100000);
+    // ASSERT(opt.adaptive == 0 || opt.adaptive == 1);
+    // ASSERT(opt.scale >= 1.0e-12f && opt.scale <= 1.0e3f);
+
     .precision = 100.0f,
     .format = 0,
     .verbose = 0,
-    .tol_x = 1e-3f,
-    .tol_y = 1e-3f,
-    .max_iter = 500.0f,
-    .max_eval = 500.0f,
+    .tol_x = 1e-6f,
+    .tol_y = 1e-6f,
+    .max_iter = 5000.0f,
+    .max_eval = 5000.0f,
     .adaptive = 0,
     .scale = 1.0e-5f};
 
-int problem_dimension = 3;
-
-struct Model
+void init_model(model mdl, int idxToTake)
 {
-    real V[Num_Anchors];
-};
-
-model *init_model(int idxToTake, model *mdl)
-{
-    // model *mdl = malloc(Num_Anchors * sizeof(model));
     ///============================= initialization of the stuff for the magnetic simulation ==============================
 
-    // calculate the B field and the V for each coil in each positions
-    // this is the ground truth
+    // fill the model with the measured Volts
+
     real B_field[3];
-    real V[Num_TagPoses][Num_Anchors];
-    for (int posIdx = 0; posIdx < Num_TagPoses; posIdx++)
+    real V_measured[NUM_ANCHORS];
+
+    for (int anchorIdx = 0; anchorIdx < NUM_ANCHORS; anchorIdx++)
+    {
+        get_B_field_for_a_Anchor(Anchors[anchorIdx], Tag[idxToTake], versore_spira_rx, B_field);
+        V_measured[anchorIdx] = V_from_B(B_field, versore_spira_rx, frequencies[anchorIdx], G_INA);
+        mdl.V_Measured[anchorIdx] = V_measured[anchorIdx];
+    }
+}
+
+void cost(const model *mdl, point *pnt)
+{
+
+    real costo = 0.0f;
+    real V_predictedFromCurrentPnt[NUM_ANCHORS];
+    real B_field_vector[3];
+    for (int anchorIdx = 0; anchorIdx < NUM_ANCHORS; anchorIdx++)
     {
 
-        for (int anchorIdx = 0; anchorIdx < Num_Anchors; anchorIdx++)
-        {
-            get_B_field_for_a_Anchor(Anchors[anchorIdx], Tag[posIdx], versore_spira_rx, B_field);
-            V[posIdx][anchorIdx] = V_from_B(B_field, versore_spira_rx, f[anchorIdx]);
-        }
+        get_B_field_for_a_Anchor(Anchors[anchorIdx], pnt->x, versore_spira_rx, B_field_vector);
+        V_predictedFromCurrentPnt[anchorIdx] = V_from_B(B_field_vector, versore_spira_rx, frequencies[anchorIdx], G_INA);
     }
-    // print all V
-    memcpy(mdl->V, V[idxToTake], Num_Anchors * sizeof(real));
-    // printf("Tag[%d] = %Lf, %Lf, %Lf\n", idxToTake, Tag[idxToTake][0], Tag[idxToTake][1], Tag[idxToTake][2]);
-    // for (int anchorIdx = 0; anchorIdx < Num_Anchors; anchorIdx++)
-    // {
-    //     printf("V[0][%d] = %Lf\n", anchorIdx, V[0][anchorIdx]);
-    //     printf("mdl->V[%d] = %Lf\n", anchorIdx, mdl->V[anchorIdx]);
-    // }
 
-    // getchar();
-    return mdl;
+    for (int i = 0; i < NUM_ANCHORS; i++)
+    {
+        costo += powl(V_predictedFromCurrentPnt[i] - mdl->V_Measured[i], 2);
+    }
+
+    pnt->y = costo;
 }
 
 int dimensions()
@@ -193,41 +205,11 @@ int dimensions()
     return problem_dimension; // Tre componenti per la posizione (x, y, z)
 }
 
-// Funzione di costo che funziona su un punto usando i V misurati da ogni ancora, questa funzione deve ottimizzare una posizione alla volta.
-void cost(const model *mdl, point *pnt)
-{
-    // printf("pnt->x = %Lf, %Lf, %Lf\n", pnt->x[0], pnt->x[1], pnt->x[2]);
-    // printf("Magnetic Cost Function\n");
-    // printf("Input Point\n");
-    // print_point(3, pnt, 9, 0);
-    real costo = 0.0f;
-    real V_model[Num_Anchors];
-    real B_field_vector[3];
-    for (int anchorIdx = 0; anchorIdx < Num_Anchors; anchorIdx++)
-    {
-
-        get_B_field_for_a_Anchor(Anchors[anchorIdx], pnt->x, versore_spira_rx, B_field_vector);
-        // V_model[anchorIdx] = V_from_B(B_field_vector, versore_spira_rx, f0);
-
-        // version with noise on the V_model
-        V_model[anchorIdx] = V_from_B(B_field_vector, versore_spira_rx, f[anchorIdx]) + 0.001f * ((real)rand() / (real)RAND_MAX);
-    }
-
-    for (int i = 0; i < Num_Anchors; i++)
-    {
-        costo += powf(mdl->V[i] - V_model[i], 2);
-    }
-
-    pnt->y = costo;
-}
-
-int idxToTake = 0;
-
-void write_positions_to_file(float (*estimated_positions)[3], int num_positions)
+void write_positions_to_file(real (*estimated_positions)[3], int num_positions)
 {
 
     // Anchors File
-    FILE *fileAnchors = fopen("Anchors.csv", "w");
+    FILE *fileAnchors = fopen("Anchors_CF.csv", "w");
     if (fileAnchors == NULL)
     {
         perror("Impossibile aprire il fileAnchors");
@@ -239,13 +221,13 @@ void write_positions_to_file(float (*estimated_positions)[3], int num_positions)
 
     for (int anchorIdx = 0; anchorIdx < Num_Anchors; anchorIdx++)
     {
-        fprintf(fileAnchors, "%f,%f,%f\n",
-                (float)Anchors[anchorIdx][0], (float)Anchors[anchorIdx][1], (float)Anchors[anchorIdx][2]);
+        fprintf(fileAnchors, "%Lf,%Lf,%Lf\n",
+                (real)Anchors[anchorIdx][0], (real)Anchors[anchorIdx][1], (real)Anchors[anchorIdx][2]);
     }
     fclose(fileAnchors);
 
     // True Positions Tag File
-    FILE *fileTrueTagPositions = fopen("TrueTagPositions.csv", "w");
+    FILE *fileTrueTagPositions = fopen("TrueTagPositions_CF.csv", "w");
     if (fileTrueTagPositions == NULL)
     {
         perror("Impossibile aprire il fileTrueTagPositions");
@@ -257,13 +239,13 @@ void write_positions_to_file(float (*estimated_positions)[3], int num_positions)
 
     for (int posIdx = 0; posIdx < Num_TagPoses; posIdx++)
     {
-        fprintf(fileTrueTagPositions, "%f,%f,%f\n",
-                (float)Tag[posIdx][0], (float)Tag[posIdx][1], (float)Tag[posIdx][2]);
+        fprintf(fileTrueTagPositions, "%Lf,%Lf,%Lf\n",
+                (real)Tag[posIdx][0], (real)Tag[posIdx][1], (real)Tag[posIdx][2]);
     }
     fclose(fileTrueTagPositions);
 
     // // Estimated Positions Tag File
-    FILE *fileEstimatedTagPositions = fopen("EstimatedTagPositions.csv", "w");
+    FILE *fileEstimatedTagPositions = fopen("EstimatedTagPositions_CF.csv", "w");
     if (fileEstimatedTagPositions == NULL)
     {
         perror("Impossibile aprire il fileEstimatedTagPositions");
@@ -275,13 +257,13 @@ void write_positions_to_file(float (*estimated_positions)[3], int num_positions)
 
     for (int i = 0; i < num_positions; i++)
     {
-        fprintf(fileEstimatedTagPositions, "%f,%f,%f\n",
+        fprintf(fileEstimatedTagPositions, "%Lf,%Lf,%Lf\n",
                 estimated_positions[i][0], estimated_positions[i][1], estimated_positions[i][2]);
     }
     fclose(fileEstimatedTagPositions);
 
     // Input Points File
-    FILE *fileInputPoint = fopen("InputPoint.csv", "w");
+    FILE *fileInputPoint = fopen("InputPoint_CF.csv", "w");
     if (fileInputPoint == NULL)
     {
         perror("Impossibile aprire il fileEstimatedTagPositions");
@@ -290,7 +272,7 @@ void write_positions_to_file(float (*estimated_positions)[3], int num_positions)
     fprintf(fileInputPoint, "InputPoint_x,InputPoint_y,InputPoint_z\n");
     for (int i = 0; i < num_positions; i++)
     {
-        fprintf(fileInputPoint, "%f,%f,%f\n",
+        fprintf(fileInputPoint, "%Lf,%Lf,%Lf\n",
                 InputPoint[i][0], InputPoint[i][1], InputPoint[i][2]);
     }
     fclose(fileInputPoint);
@@ -298,6 +280,8 @@ void write_positions_to_file(float (*estimated_positions)[3], int num_positions)
 
 int main()
 {
+
+    srand(time(NULL));
 
     real centro[2] = {0.0f, 0.0f}; // Centro della circonferenza
     real raggio = 0.3;             // Raggio della circonferenza
@@ -326,20 +310,57 @@ int main()
         Tag[i][2] = h_tx;
     }
 
-    float estimated_positions[Num_TagPoses][3];
+    // shift the first row of Tag to the last row
+    real temp[3];
+    temp[0] = Tag[0][0];
+    temp[1] = Tag[0][1];
+    temp[2] = Tag[0][2];
 
+    for (int i = 0; i < Num_TagPoses - 1; i++)
+    {
+        Tag[i][0] = Tag[i + 1][0];
+        Tag[i][1] = Tag[i + 1][1];
+        Tag[i][2] = Tag[i + 1][2];
+    }
+
+    Tag[Num_TagPoses - 1][0] = temp[0];
+    Tag[Num_TagPoses - 1][1] = temp[1];
+    Tag[Num_TagPoses - 1][2] = temp[2];
+
+    real estimated_positions[Num_TagPoses][3];
+
+    // first point is the true point
+    estimated_position[0] = Tag[0][0];
+    estimated_position[1] = Tag[0][1];
+    estimated_position[2] = Tag[0][2];
     // iterate over the tag positions
     for (int idxToTake = 0; idxToTake < Num_TagPoses; idxToTake++)
     {
 
-        // ASSERT(opt.precision >= 3 && opt.precision <= 36);
-        // ASSERT(opt.verbose == 0 || opt.verbose == 1);
-        // ASSERT(opt.tol_x >= 1.0e-36f && opt.tol_x <= 1.0e-3f);
-        // ASSERT(opt.tol_y >= 1.0e-36f && opt.tol_y <= 1.0e-3f);
-        // ASSERT(opt.max_iter >= 1 && opt.max_iter <= 100000);
-        // ASSERT(opt.max_eval >= 1 && opt.max_eval <= 100000);
-        // ASSERT(opt.adaptive == 0 || opt.adaptive == 1);
-        // ASSERT(opt.scale >= 1.0e-12f && opt.scale <= 1.0e3f);
+        printf("TAG POSITION:  (%Lf,%Lf,%Lf)\n", Tag[idxToTake][0], Tag[idxToTake][1], Tag[idxToTake][2]);
+
+        // filling  voltMeasurement_t *voltAnchor
+        // static voltMeasurement_t voltAnchor;
+
+        // // iterating over the anchors and fill voltAnchor
+        // for (int anchorIdx = 0; anchorIdx < Num_Anchors; anchorIdx++)
+        // {
+        //     voltAnchor.anchorId[anchorIdx] = anchorIdx;
+        //     voltAnchor.x[anchorIdx] = Anchors[anchorIdx][0];
+        //     voltAnchor.y[anchorIdx] = Anchors[anchorIdx][1];
+        //     voltAnchor.z[anchorIdx] = Anchors[anchorIdx][2];
+        //     voltAnchor.resonanceFrequency[anchorIdx] = frequencies[anchorIdx];
+        //     voltAnchor.GainValue = G_INA;
+
+        //     // computing the Bfield for this anchor in the real position of the tag
+        //     real B_field[3];
+        //     get_B_field_for_a_Anchor(Anchors[anchorIdx], Tag[idxToTake + 1], versore_spira_rx, B_field);
+
+        //     // computing the V for this anchor in the real position of the tag
+        //     real MeasuredVolt = V_from_B(B_field, versore_spira_rx, voltAnchor.resonanceFrequency[anchorIdx], voltAnchor.GainValue);
+        //     // adding gaussian noise to the measured voltage
+        //     voltAnchor.measuredVolt[anchorIdx] = MeasuredVolt; // + magnetiSTDNoise * ((real)rand() / (real)RAND_MAX);
+        // }
 
         /// ======================== FUNZIONE DI COSTO ========================
         // questa funzione costo stima 1 volta, dovro iterare tutto per farla funzionare con putni multipli
@@ -354,43 +375,38 @@ int main()
         // allocate input / output points
         // point *inp = init_point(n);
         // point *out = init_point(n);
-        point inp;
-        point out;
 
         // set input point coordinates from command args
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < problem_dimension; i++)
         {
-            // barycentre of the tag positions
-            // real theta_0[3] = {0.15f, 0.15f, 0.2f};
-            // inp.x[i] = 0.0;
-
-            // gaussian noise to the input point applyied to the true point
-            InputPoint[idxToTake][i] = Tag[idxToTake][i] + 0.1f * ((real)rand() / (real)RAND_MAX);
-            inp.x[i] = InputPoint[idxToTake][i];
-
-            // True point
-            // inp->x[i] = Tag[idxToTake][i];
+            // point estimated at the previous iteration
+            if (idxToTake == 0)
+            {
+                inp.x[i] = Tag[idxToTake][i];
+            }
+            else
+            {
+                inp.x[i] = out.x[i];
+            }
+            InputPoint[idxToTake][i] = inp.x[i];
         }
 
         // initialize model and simplex
-        model mdl;
-        init_model(idxToTake, &mdl);
+        real tag_or_versor[3] = {0.0, 0.0, 1.0};
 
-        simplex smpl;
+        init_model(mdl, idxToTake + 1);
+
         init_simplex(n, opt.scale, &inp, &smpl);
-
-        // print information
-        cost(&mdl, &inp);
 
         // optimize model mdl, using settings opt, starting
         // from simplex smpl, and save result to point out
         nelder_mead(&mdl, &opt, &smpl, &out);
-
-        // printf("True point: [%Lf,%Lf,%Lf] \n", Tag[idxToTake][0], Tag[idxToTake][1], Tag[idxToTake][2]);
-        // printf("starting point: [%Lf,%Lf,%Lf] \n", inp->x[0], inp->x[1], inp->x[2]);
-        // printf("output point: [%Lf,%Lf,%Lf] \n", out->x[0], out->x[1], out->x[2]);
+        cost(&mdl, &inp);
 
         // save the estimated position
+        // estimated_position[0] = out.x[0];
+        // estimated_position[1] = out.x[1];
+        // estimated_position[2] = out.x[2];
         estimated_positions[idxToTake][0] = out.x[0];
         estimated_positions[idxToTake][1] = out.x[1];
         estimated_positions[idxToTake][2] = out.x[2];

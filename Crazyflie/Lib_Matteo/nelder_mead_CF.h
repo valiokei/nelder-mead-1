@@ -1,18 +1,17 @@
-#ifndef __NELDER_MEAD__
-#define __NELDER_MEAD__
 
-#include <stddef.h>
+#ifndef __NELDER_MEAD_CF__
+#define __NELDER_MEAD_CF__
+
+#include "Config.h"
 
 #define DIMENSIONS 3
 
-// #include "model.h"
+typedef long double real;
 
-typedef float real;
-typedef enum
+struct Model
 {
-    false,
-    true
-} bool;
+    real V_Measured[NUM_ANCHORS];
+};
 
 /*
  * "Low-noise" squaring for arguments with no side-effects
@@ -23,22 +22,42 @@ typedef enum
  * Function definition
  */
 typedef struct Model model;
-
 /*
- * Point definition
- *   x: n-dimensional array with point coordinates
- *   y: value of a function f applied to the coordinates x, y = f(x)
+ * Cost function implementation
+ *   model: model to optimize
+ *   point: point where to evaluate the function
  */
+
 typedef struct Point
 {
     real x[DIMENSIONS];
     real y;
 } point;
 
+typedef struct voltMeasurement_s
+{
+
+    real x[4];
+    real y[4];
+    real z[4];
+    int anchorId[4];
+    real measuredVolt[4];
+    real resonanceFrequency[4];
+    real stdDev[4];
+    real GainValue;
+    int Id_in_saturation;
+} voltMeasurement_t;
+
 /*
  * Initialize function
  */
-model *init_model(int idx, model *mdl);
+void init_model(model mdl, int idxToTake);
+void cost(const model *, point *);
+/*
+ * Point definition
+ *   x: n-dimensional array with point coordinates
+ *   y: value of a function f applied to the coordinates x, y = f(x)
+ */
 
 /*
  * Return expected number of dimensions
@@ -50,39 +69,14 @@ int dimensions(void);
  *   model: model to optimize
  *   point: point where to evaluate the function
  */
-void cost(const model *, point *);
-
-#define BASE 10
-
-/*
- * ANSI color codes
- * https://gist.github.com/RabaDabaDoba/145049536f815903c79944599c6f952a
- */
-#define GRY "\x1B[1;30m"
-#define RED "\x1B[1;31m"
-#define GRN "\x1B[1;32m"
-#define YLW "\x1B[1;33m"
-#define BLU "\x1B[1;34m"
-#define MGT "\x1B[1;35m"
-#define CYN "\x1B[1;36m"
-#define WHT "\x1B[1;37m"
-#define NRM "\x1B[0m"
-#define GRYBG "\x1B[0;100m"
-#define REDBG "\x1B[0;101m"
-#define GRNBG "\x1B[0;102m"
-#define YLWBG "\x1B[0;103m"
-#define BLUBG "\x1B[0;104m"
-#define MGTBG "\x1B[0;105m"
-#define CYNBG "\x1B[0;106m"
-#define WHTBG "\x1B[0;107m"
 
 /*
  * Optimizer settings
  */
 typedef struct Optimset
 {
-    int precision;         // significant figures in floats/exponentials
-    int format;            // fixed or exponential floating point format
+    int precision;         // significant figures in reals/exponentials
+    int format;            // fixed or exponential realing point format
     int verbose;           // toggle verbose output during minimization
     real tol_x;            // tolerance on the simplex solutions coordinates
     real tol_y;            // tolerance on the function value
@@ -137,14 +131,8 @@ int terminated(const simplex *, const optimset *);
 
 void copy_point(int, const point *, point *);
 
-void print_point(int, const point *, int, int);
-
-void print_value(real, int, int);
-
-void print_verbose(int, const char *, ...);
-
 void free_simplex(simplex *);
 
 void free_point(point *);
 
-#endif // __NELDER_MEAD__
+#endif // __NELDER_MEAD_CF__
