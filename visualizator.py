@@ -7,13 +7,13 @@ import plotly.graph_objects as go
 # il file si trova un livello fuori da questo
 
 # elimina tutti i file .csv
-os.system("rm /home/valiokei/Documenti/GitHub/nelder-mead/*.csv")
+os.system("rm /home/valiokei/GitHub/nelder-mead/*.csv")
 
 # elimina il file eseguibile se esiste chiamato main
-os.system("rm /home/valiokei/Documenti/GitHub/nelder-mead/main")
+os.system("rm /home/valiokei/GitHub/nelder-mead/main")
 
 
-os.system("/usr/bin/gcc -fdiagnostics-color=always -g /home/valiokei/Documenti/GitHub/nelder-mead/*.c /home/valiokei/Documenti/GitHub/nelder-mead/*.h -o /home/valiokei/Documenti/GitHub/nelder-mead/main -lm -I /home/valiokei/Documenti/GitHub/nelder-mead")
+os.system("/usr/bin/gcc -fdiagnostics-color=always -g /home/valiokei/GitHub/nelder-mead/*.c /home/valiokei/GitHub/nelder-mead/*.h -o /home/valiokei/GitHub/nelder-mead/main -lm -I /home/valiokei/GitHub/nelder-mead")
 
 os.system("./main")
 
